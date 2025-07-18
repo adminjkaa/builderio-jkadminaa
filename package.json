@@ -19,7 +19,7 @@
     "test": "vitest --run",
     "format.fix": "prettier --write .",
     "typecheck": "tsc",
-    "extract": "node manual_extract.js"
+    "extract": "node manual_extract.mjs"
   },
   "dependencies": {
     "express": "^4.18.2",
