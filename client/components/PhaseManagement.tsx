@@ -87,7 +87,7 @@ export const PhaseManagement: React.FC<PhaseManagementProps> = ({
     "#06B6D4",
     "#84CC16",
     "#F97316",
-    "#8B5CF6",
+    "#EC4899",
   ];
 
   const handleCreatePhase = () => {
