@@ -196,8 +196,42 @@ const initialSampleTasks: Task[] = [
   },
 ];
 
+// Initial sample project
+const initialSampleProject: Project = {
+  id: "project1",
+  name: "Sample Construction Project",
+  startDate: "2024-01-15",
+  endDate: "2024-06-30",
+  status: "in-progress",
+  progress: 35,
+  description: "A sample construction project for demonstration",
+  activeTasks: 2,
+  totalTasks: 4,
+  members: 3,
+  phases: [
+    {
+      id: "phase1",
+      name: "Foundation",
+      description: "Foundation excavation and concrete work",
+      startDate: "2024-01-15",
+      endDate: "2024-02-15",
+      color: "#8B5CF6",
+      order: 0,
+    },
+    {
+      id: "phase2",
+      name: "Framing",
+      description: "Structure framing and roofing",
+      startDate: "2024-02-16",
+      endDate: "2024-04-15",
+      color: "#10B981",
+      order: 1,
+    },
+  ],
+};
+
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([initialSampleProject]);
   const [users, setUsers] = useState<User[]>(initialTestUsers);
   const [tasks, setTasks] = useState<Task[]>(initialSampleTasks);
   const [media, setMedia] = useState<MediaFile[]>([]);
