@@ -27,7 +27,6 @@ export default function ProjectTimeline() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"gantt" | "list">("gantt");
 
   const handleLogout = () => {
     logout();
@@ -68,6 +67,20 @@ export default function ProjectTimeline() {
       (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24),
     );
 
+    // Generate timeline days
+    const timelineDays = [];
+    const currentDate = new Date(projectStart);
+
+    for (let i = 0; i <= totalDays; i++) {
+      timelineDays.push({
+        date: new Date(currentDate),
+        dayNumber: i + 1,
+        weekNumber: Math.ceil((i + 1) / 7),
+        isWeekStart: i % 7 === 0,
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
     // Group tasks by phases
     const tasksByPhase = currentProject.phases
       ? currentProject.phases
@@ -85,6 +98,7 @@ export default function ProjectTimeline() {
       projectStart,
       projectEnd,
       totalDays,
+      timelineDays,
       tasksByPhase,
       unassignedTasks,
     };
@@ -119,231 +133,301 @@ export default function ProjectTimeline() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-success";
+        return "bg-green-500";
       case "in-progress":
-        return "bg-info";
+        return "bg-blue-500";
       case "planned":
-        return "bg-muted";
+        return "bg-gray-400";
       case "delayed":
-        return "bg-destructive";
+        return "bg-red-500";
       default:
-        return "bg-muted";
+        return "bg-gray-400";
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="w-4 h-4" />;
-      case "in-progress":
-        return <Clock className="w-4 h-4" />;
-      case "delayed":
-        return <AlertTriangle className="w-4 h-4" />;
-      default:
-        return <Calendar className="w-4 h-4" />;
-    }
-  };
-
-  const generateTimelineHeader = () => {
-    if (!timelineData) return [];
-
-    const { projectStart, totalDays } = timelineData;
-    const weeks = [];
-    let currentDate = new Date(projectStart);
-
-    for (let i = 0; i <= totalDays; i += 7) {
-      weeks.push({
-        week: `Week ${Math.floor(i / 7) + 1}`,
-        date: new Date(currentDate).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        position: (i / totalDays) * 100,
-      });
-      currentDate.setDate(currentDate.getDate() + 7);
-    }
-
-    return weeks;
+  const getPhaseColor = (phase: any) => {
+    return phase?.color || "#8B5CF6";
   };
 
   const GanttChart = () => {
     if (!timelineData) return null;
 
-    const timelineWeeks = generateTimelineHeader();
+    const { timelineDays, tasksByPhase, unassignedTasks } = timelineData;
+    const dayWidth = 100 / timelineData.totalDays;
 
     return (
-      <div className="space-y-6">
-        {/* Timeline Header */}
-        <div className="relative bg-muted/20 rounded-lg p-4">
-          <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
-            <span>Timeline ({timelineData.totalDays} days)</span>
-            <span>
-              {timelineData.projectStart.toLocaleDateString()} -{" "}
-              {timelineData.projectEnd.toLocaleDateString()}
-            </span>
-          </div>
-          <div className="relative h-8 bg-background rounded border">
-            {timelineWeeks.map((week, index) => (
-              <div
-                key={index}
-                className="absolute top-0 h-full flex flex-col justify-center text-xs text-muted-foreground border-r border-border"
-                style={{ left: `${week.position}%` }}
-              >
-                <div className="px-2">
-                  <div className="font-medium">{week.week}</div>
-                  <div>{week.date}</div>
-                </div>
+      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+        {/* Gantt Chart Header */}
+        <div className="bg-gray-50 border-b">
+          <div className="flex">
+            {/* Left column header */}
+            <div className="w-80 border-r bg-gray-100 p-4">
+              <div className="grid grid-cols-4 gap-4 text-xs font-semibold text-gray-600 uppercase">
+                <div>TASK</div>
+                <div>ASSIGNED TO</div>
+                <div>PROGRESS</div>
+                <div>DATES</div>
               </div>
-            ))}
+            </div>
+
+            {/* Timeline header */}
+            <div className="flex-1 relative">
+              {/* Week headers */}
+              <div className="flex border-b bg-gray-200">
+                {Array.from(
+                  { length: Math.ceil(timelineData.totalDays / 7) },
+                  (_, weekIndex) => (
+                    <div
+                      key={weekIndex}
+                      className="border-r border-gray-300 text-center py-2 text-xs font-semibold"
+                      style={{ width: `${dayWidth * 7}%` }}
+                    >
+                      Week {weekIndex + 1}
+                    </div>
+                  ),
+                )}
+              </div>
+
+              {/* Day headers */}
+              <div className="flex">
+                {timelineDays.map((day, index) => (
+                  <div
+                    key={index}
+                    className={`border-r border-gray-200 text-center py-2 text-xs ${
+                      day.isWeekStart ? "bg-gray-100 font-semibold" : "bg-white"
+                    }`}
+                    style={{ width: `${dayWidth}%` }}
+                  >
+                    <div>{day.date.getDate()}</div>
+                    <div className="text-gray-500">
+                      {day.date.toLocaleDateString("en-US", {
+                        weekday: "short",
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Gantt Chart Content */}
-        <div className="space-y-6">
-          {timelineData.tasksByPhase.map((phase) => (
-            <Card key={phase.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
+        {/* Gantt Chart Body */}
+        <div className="max-h-96 overflow-y-auto">
+          {/* Phase sections */}
+          {tasksByPhase.map((phase) => (
+            <div key={phase.id} className="border-b">
+              {/* Phase header */}
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <div className="flex items-center gap-2">
                   <div
-                    className="w-4 h-4 rounded-full"
+                    className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: phase.color }}
                   />
-                  <CardTitle className="text-lg">{phase.name}</CardTitle>
-                  <Badge variant="outline">{phase.tasks.length} tasks</Badge>
+                  <span className="font-semibold text-gray-700">
+                    {phase.name}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {phase.tasks.length} tasks
+                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {phase.tasks.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    No tasks in this phase
-                  </p>
-                ) : (
-                  phase.tasks.map((task) => {
-                    const { left, width } = getTaskPosition(
-                      task.startDate,
-                      task.endDate,
-                    );
-                    return (
-                      <div key={task.id} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(task.status)}
-                            <span className="font-medium">{task.name}</span>
-                            <Badge
-                              variant="outline"
-                              className={`text-xs ${getStatusColor(
-                                task.status,
-                              )} text-white`}
-                            >
-                              {task.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <span>{task.progress}%</span>
-                            <span className="text-xs">
-                              {new Date(task.startDate).toLocaleDateString()} -{" "}
-                              {new Date(task.endDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="relative h-6 bg-muted/30 rounded">
-                          <div
-                            className={`absolute top-0 h-full rounded ${getStatusColor(
-                              task.status,
-                            )} opacity-80`}
-                            style={{
-                              left: `${left}%`,
-                              width: `${width}%`,
-                            }}
-                          >
-                            <div className="h-full flex items-center justify-center">
-                              <div
-                                className="h-2 bg-white/20 rounded-full"
-                                style={{ width: `${task.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                          <div
-                            className="absolute top-0 h-full bg-white/10 rounded"
-                            style={{
-                              left: `${left}%`,
-                              width: `${(width * task.progress) / 100}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          ))}
+              </div>
 
-          {/* Unassigned Tasks */}
-          {timelineData.unassignedTasks.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Unassigned Tasks</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {timelineData.unassignedTasks.map((task) => {
-                  const { left, width } = getTaskPosition(
-                    task.startDate,
-                    task.endDate,
-                  );
-                  return (
-                    <div key={task.id} className="space-y-1">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(task.status)}
-                          <span className="font-medium">{task.name}</span>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${getStatusColor(
-                              task.status,
-                            )} text-white`}
-                          >
-                            {task.status}
-                          </Badge>
+              {/* Phase tasks */}
+              {phase.tasks.map((task, taskIndex) => {
+                const { left, width } = getTaskPosition(
+                  task.startDate,
+                  task.endDate,
+                );
+                const phaseColorHex = getPhaseColor(phase);
+
+                return (
+                  <div
+                    key={task.id}
+                    className="flex border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    {/* Task info column */}
+                    <div className="w-80 border-r p-3">
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {task.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {task.trade}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>{task.progress}%</span>
-                          <span className="text-xs">
-                            {new Date(task.startDate).toLocaleDateString()} -{" "}
+                        <div className="text-gray-600">
+                          {task.assignedTo || "Unassigned"}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">
+                            {task.progress}%
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full"
+                              style={{ width: `${task.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          <div>
+                            {new Date(task.startDate).toLocaleDateString()}
+                          </div>
+                          <div>
                             {new Date(task.endDate).toLocaleDateString()}
-                          </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="relative h-6 bg-muted/30 rounded">
+                    </div>
+
+                    {/* Timeline bars */}
+                    <div className="flex-1 relative py-4">
+                      <div className="relative h-6">
+                        {/* Background bar */}
                         <div
-                          className={`absolute top-0 h-full rounded ${getStatusColor(
-                            task.status,
-                          )} opacity-80`}
+                          className="absolute top-1 h-4 rounded opacity-30"
+                          style={{
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            backgroundColor: phaseColorHex,
+                          }}
+                        />
+
+                        {/* Progress bar */}
+                        <div
+                          className="absolute top-1 h-4 rounded"
+                          style={{
+                            left: `${left}%`,
+                            width: `${(width * task.progress) / 100}%`,
+                            backgroundColor: phaseColorHex,
+                          }}
+                        />
+
+                        {/* Progress text overlay */}
+                        <div
+                          className="absolute top-1 h-4 flex items-center justify-center text-xs font-medium text-white"
                           style={{
                             left: `${left}%`,
                             width: `${width}%`,
                           }}
                         >
-                          <div className="h-full flex items-center justify-center">
+                          {task.progress}%
+                        </div>
+                      </div>
+
+                      {/* Day grid lines */}
+                      <div className="absolute inset-0 flex">
+                        {timelineDays.map((day, dayIndex) => (
+                          <div
+                            key={dayIndex}
+                            className="border-r border-gray-100"
+                            style={{ width: `${dayWidth}%` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Unassigned tasks */}
+          {unassignedTasks.length > 0 && (
+            <div className="border-b">
+              <div className="bg-gray-50 px-4 py-2 border-b">
+                <span className="font-semibold text-gray-700">
+                  Unassigned Tasks
+                </span>
+              </div>
+              {unassignedTasks.map((task) => {
+                const { left, width } = getTaskPosition(
+                  task.startDate,
+                  task.endDate,
+                );
+
+                return (
+                  <div
+                    key={task.id}
+                    className="flex border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <div className="w-80 border-r p-3">
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {task.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {task.trade}
+                          </div>
+                        </div>
+                        <div className="text-gray-600">
+                          {task.assignedTo || "Unassigned"}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">
+                            {task.progress}%
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                             <div
-                              className="h-2 bg-white/20 rounded-full"
+                              className="bg-blue-500 h-1.5 rounded-full"
                               style={{ width: `${task.progress}%` }}
                             />
                           </div>
                         </div>
+                        <div className="text-xs text-gray-500">
+                          <div>
+                            {new Date(task.startDate).toLocaleDateString()}
+                          </div>
+                          <div>
+                            {new Date(task.endDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 relative py-4">
+                      <div className="relative h-6">
                         <div
-                          className="absolute top-0 h-full bg-white/10 rounded"
+                          className="absolute top-1 h-4 bg-gray-400 rounded opacity-30"
+                          style={{
+                            left: `${left}%`,
+                            width: `${width}%`,
+                          }}
+                        />
+                        <div
+                          className="absolute top-1 h-4 bg-gray-600 rounded"
                           style={{
                             left: `${left}%`,
                             width: `${(width * task.progress) / 100}%`,
                           }}
                         />
+                        <div
+                          className="absolute top-1 h-4 flex items-center justify-center text-xs font-medium text-white"
+                          style={{
+                            left: `${left}%`,
+                            width: `${width}%`,
+                          }}
+                        >
+                          {task.progress}%
+                        </div>
+                      </div>
+
+                      <div className="absolute inset-0 flex">
+                        {timelineDays.map((day, dayIndex) => (
+                          <div
+                            key={dayIndex}
+                            className="border-r border-gray-100"
+                            style={{ width: `${dayWidth}%` }}
+                          />
+                        ))}
                       </div>
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
@@ -404,10 +488,22 @@ export default function ProjectTimeline() {
                     <CardTitle className="text-2xl">
                       {currentProject.name}
                     </CardTitle>
-                    <p className="text-muted-foreground mt-1">
-                      {new Date(currentProject.startDate).toLocaleDateString()}{" "}
-                      - {new Date(currentProject.endDate).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <span>
+                        Project Start Date:{" "}
+                        {new Date(
+                          currentProject.startDate,
+                        ).toLocaleDateString()}
+                      </span>
+                      <span>
+                        Current Week:{" "}
+                        {Math.ceil(
+                          (new Date().getTime() -
+                            new Date(currentProject.startDate).getTime()) /
+                            (7 * 24 * 60 * 60 * 1000),
+                        )}
+                      </span>
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">
@@ -419,45 +515,9 @@ export default function ProjectTimeline() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Progress value={currentProject.progress} className="h-3" />
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Total Tasks</p>
-                    <p className="text-xl font-bold">{projectTasks.length}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Completed</p>
-                    <p className="text-xl font-bold text-success">
-                      {
-                        projectTasks.filter((t) => t.status === "completed")
-                          .length
-                      }
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">In Progress</p>
-                    <p className="text-xl font-bold text-info">
-                      {
-                        projectTasks.filter((t) => t.status === "in-progress")
-                          .length
-                      }
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">Delayed</p>
-                    <p className="text-xl font-bold text-destructive">
-                      {
-                        projectTasks.filter((t) => t.status === "delayed")
-                          .length
-                      }
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
             </Card>
 
-            {/* Filters and View Toggle */}
+            {/* Filters */}
             <Card className="mb-8">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -484,22 +544,12 @@ export default function ProjectTimeline() {
                       <option value="delayed">Delayed</option>
                     </select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={viewMode === "gantt" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setViewMode("gantt")}
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Gantt View
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Gantt Chart */}
-            {viewMode === "gantt" && <GanttChart />}
+            <GanttChart />
           </>
         )}
       </div>
