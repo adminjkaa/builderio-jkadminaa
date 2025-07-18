@@ -46,8 +46,31 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
       return;
     }
 
+    // Validate file types and sizes
+    const validFiles = Array.from(uploadFiles).filter((file) => {
+      const isValidType =
+        file.type.startsWith("image/") || file.type.startsWith("video/");
+      const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit
+
+      if (!isValidType) {
+        alert(`File "${file.name}" is not a valid image or video file.`);
+        return false;
+      }
+
+      if (!isValidSize) {
+        alert(`File "${file.name}" is too large. Maximum size is 50MB.`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+      return;
+    }
+
     try {
-      Array.from(uploadFiles).forEach((file) => {
+      validFiles.forEach((file) => {
         // Create object URL for preview
         const url = URL.createObjectURL(file);
         addMedia({
@@ -66,7 +89,7 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
       setShowDialog(false);
 
       // Success feedback
-      alert(`Successfully uploaded ${uploadFiles.length} file(s)!`);
+      alert(`Successfully uploaded ${validFiles.length} file(s)!`);
     } catch (error) {
       console.error("Error uploading media:", error);
       alert("Error uploading files. Please try again.");
