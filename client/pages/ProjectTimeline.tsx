@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Calendar,
   ArrowLeft,
-  ZoomIn,
-  ZoomOut,
   Filter,
   Search,
   LogOut,
@@ -29,6 +27,7 @@ export default function ProjectTimeline() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"gantt" | "list">("gantt");
 
   const handleLogout = () => {
     logout();
@@ -59,44 +58,76 @@ export default function ProjectTimeline() {
     return matchesSearch && matchesStatus;
   });
 
-  // Group tasks by phases
-  const tasksByPhase = currentProject?.phases
-    ? currentProject.phases
-        .sort((a, b) => a.order - b.order)
-        .map((phase) => ({
-          ...phase,
-          tasks: filteredTasks.filter((task) => task.phaseId === phase.id),
-        }))
-    : [];
+  // Calculate timeline dimensions and dates
+  const timelineData = useMemo(() => {
+    if (!currentProject || filteredTasks.length === 0) return null;
 
-  // Tasks not assigned to any phase
-  const unassignedTasks = filteredTasks.filter((task) => !task.phaseId);
+    const projectStart = new Date(currentProject.startDate);
+    const projectEnd = new Date(currentProject.endDate);
+    const totalDays = Math.ceil(
+      (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    // Group tasks by phases
+    const tasksByPhase = currentProject.phases
+      ? currentProject.phases
+          .sort((a, b) => a.order - b.order)
+          .map((phase) => ({
+            ...phase,
+            tasks: filteredTasks.filter((task) => task.phaseId === phase.id),
+          }))
+      : [];
+
+    // Tasks not assigned to any phase
+    const unassignedTasks = filteredTasks.filter((task) => !task.phaseId);
+
+    return {
+      projectStart,
+      projectEnd,
+      totalDays,
+      tasksByPhase,
+      unassignedTasks,
+    };
+  }, [currentProject, filteredTasks]);
+
+  const getTaskPosition = (taskStartDate: string, taskEndDate: string) => {
+    if (!timelineData) return { left: 0, width: 0 };
+
+    const taskStart = new Date(taskStartDate);
+    const taskEnd = new Date(taskEndDate);
+    const { projectStart, totalDays } = timelineData;
+
+    const daysFromStart = Math.max(
+      0,
+      Math.ceil(
+        (taskStart.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24),
+      ),
+    );
+    const taskDuration = Math.max(
+      1,
+      Math.ceil(
+        (taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24),
+      ),
+    );
+
+    const left = (daysFromStart / totalDays) * 100;
+    const width = (taskDuration / totalDays) * 100;
+
+    return { left, width };
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-success text-success-foreground";
+        return "bg-success";
       case "in-progress":
-        return "bg-info text-info-foreground";
+        return "bg-info";
       case "planned":
-        return "bg-muted text-muted-foreground";
+        return "bg-muted";
       case "delayed":
-        return "bg-destructive text-destructive-foreground";
+        return "bg-destructive";
       default:
-        return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-destructive text-destructive-foreground";
-      case "medium":
-        return "bg-orange-500 text-white";
-      case "low":
-        return "bg-success text-success-foreground";
-      default:
-        return "bg-muted text-muted-foreground";
+        return "bg-muted";
     }
   };
 
@@ -111,6 +142,212 @@ export default function ProjectTimeline() {
       default:
         return <Calendar className="w-4 h-4" />;
     }
+  };
+
+  const generateTimelineHeader = () => {
+    if (!timelineData) return [];
+
+    const { projectStart, totalDays } = timelineData;
+    const weeks = [];
+    let currentDate = new Date(projectStart);
+
+    for (let i = 0; i <= totalDays; i += 7) {
+      weeks.push({
+        week: `Week ${Math.floor(i / 7) + 1}`,
+        date: new Date(currentDate).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        position: (i / totalDays) * 100,
+      });
+      currentDate.setDate(currentDate.getDate() + 7);
+    }
+
+    return weeks;
+  };
+
+  const GanttChart = () => {
+    if (!timelineData) return null;
+
+    const timelineWeeks = generateTimelineHeader();
+
+    return (
+      <div className="space-y-6">
+        {/* Timeline Header */}
+        <div className="relative bg-muted/20 rounded-lg p-4">
+          <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+            <span>Timeline ({timelineData.totalDays} days)</span>
+            <span>
+              {timelineData.projectStart.toLocaleDateString()} -{" "}
+              {timelineData.projectEnd.toLocaleDateString()}
+            </span>
+          </div>
+          <div className="relative h-8 bg-background rounded border">
+            {timelineWeeks.map((week, index) => (
+              <div
+                key={index}
+                className="absolute top-0 h-full flex flex-col justify-center text-xs text-muted-foreground border-r border-border"
+                style={{ left: `${week.position}%` }}
+              >
+                <div className="px-2">
+                  <div className="font-medium">{week.week}</div>
+                  <div>{week.date}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Gantt Chart Content */}
+        <div className="space-y-6">
+          {timelineData.tasksByPhase.map((phase) => (
+            <Card key={phase.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-4 h-4 rounded-full"
+                    style={{ backgroundColor: phase.color }}
+                  />
+                  <CardTitle className="text-lg">{phase.name}</CardTitle>
+                  <Badge variant="outline">{phase.tasks.length} tasks</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {phase.tasks.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    No tasks in this phase
+                  </p>
+                ) : (
+                  phase.tasks.map((task) => {
+                    const { left, width } = getTaskPosition(
+                      task.startDate,
+                      task.endDate,
+                    );
+                    return (
+                      <div key={task.id} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(task.status)}
+                            <span className="font-medium">{task.name}</span>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${getStatusColor(
+                                task.status,
+                              )} text-white`}
+                            >
+                              {task.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span>{task.progress}%</span>
+                            <span className="text-xs">
+                              {new Date(task.startDate).toLocaleDateString()} -{" "}
+                              {new Date(task.endDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="relative h-6 bg-muted/30 rounded">
+                          <div
+                            className={`absolute top-0 h-full rounded ${getStatusColor(
+                              task.status,
+                            )} opacity-80`}
+                            style={{
+                              left: `${left}%`,
+                              width: `${width}%`,
+                            }}
+                          >
+                            <div className="h-full flex items-center justify-center">
+                              <div
+                                className="h-2 bg-white/20 rounded-full"
+                                style={{ width: `${task.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div
+                            className="absolute top-0 h-full bg-white/10 rounded"
+                            style={{
+                              left: `${left}%`,
+                              width: `${(width * task.progress) / 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Unassigned Tasks */}
+          {timelineData.unassignedTasks.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Unassigned Tasks</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {timelineData.unassignedTasks.map((task) => {
+                  const { left, width } = getTaskPosition(
+                    task.startDate,
+                    task.endDate,
+                  );
+                  return (
+                    <div key={task.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(task.status)}
+                          <span className="font-medium">{task.name}</span>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${getStatusColor(
+                              task.status,
+                            )} text-white`}
+                          >
+                            {task.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span>{task.progress}%</span>
+                          <span className="text-xs">
+                            {new Date(task.startDate).toLocaleDateString()} -{" "}
+                            {new Date(task.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="relative h-6 bg-muted/30 rounded">
+                        <div
+                          className={`absolute top-0 h-full rounded ${getStatusColor(
+                            task.status,
+                          )} opacity-80`}
+                          style={{
+                            left: `${left}%`,
+                            width: `${width}%`,
+                          }}
+                        >
+                          <div className="h-full flex items-center justify-center">
+                            <div
+                              className="h-2 bg-white/20 rounded-full"
+                              style={{ width: `${task.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          className="absolute top-0 h-full bg-white/10 rounded"
+                          style={{
+                            left: `${left}%`,
+                            width: `${(width * task.progress) / 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -220,7 +457,7 @@ export default function ProjectTimeline() {
               </CardContent>
             </Card>
 
-            {/* Filters */}
+            {/* Filters and View Toggle */}
             <Card className="mb-8">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
@@ -247,143 +484,22 @@ export default function ProjectTimeline() {
                       <option value="delayed">Delayed</option>
                     </select>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={viewMode === "gantt" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setViewMode("gantt")}
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Gantt View
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Timeline by Phases */}
-            <div className="space-y-6">
-              {tasksByPhase.map((phase) => (
-                <Card key={phase.id}>
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: phase.color }}
-                      />
-                      <CardTitle>{phase.name}</CardTitle>
-                      <Badge variant="outline">
-                        {phase.tasks.length} tasks
-                      </Badge>
-                    </div>
-                    {phase.description && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {phase.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                      <span>
-                        {new Date(phase.startDate).toLocaleDateString()} -{" "}
-                        {new Date(phase.endDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {phase.tasks.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">
-                        No tasks in this phase
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {phase.tasks.map((task) => (
-                          <div
-                            key={task.id}
-                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                {getStatusIcon(task.status)}
-                                <h4 className="font-medium">{task.name}</h4>
-                                <Badge className={getStatusColor(task.status)}>
-                                  {task.status.replace("-", " ")}
-                                </Badge>
-                                <Badge
-                                  className={getPriorityColor(task.priority)}
-                                  variant="outline"
-                                >
-                                  {task.priority}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span>Trade: {task.trade}</span>
-                                <span>
-                                  Due:{" "}
-                                  {new Date(task.dueDate).toLocaleDateString()}
-                                </span>
-                                <span>{task.media.length} media files</span>
-                              </div>
-                              <div className="mt-2">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                  <span>Progress</span>
-                                  <span>{task.progress}%</span>
-                                </div>
-                                <Progress
-                                  value={task.progress}
-                                  className="h-2"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-
-              {/* Unassigned Tasks */}
-              {unassignedTasks.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Unassigned Tasks</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Tasks not assigned to any specific phase
-                    </p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {unassignedTasks.map((task) => (
-                        <div
-                          key={task.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              {getStatusIcon(task.status)}
-                              <h4 className="font-medium">{task.name}</h4>
-                              <Badge className={getStatusColor(task.status)}>
-                                {task.status.replace("-", " ")}
-                              </Badge>
-                              <Badge
-                                className={getPriorityColor(task.priority)}
-                                variant="outline"
-                              >
-                                {task.priority}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>Trade: {task.trade}</span>
-                              <span>
-                                Due:{" "}
-                                {new Date(task.dueDate).toLocaleDateString()}
-                              </span>
-                              <span>{task.media.length} media files</span>
-                            </div>
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between text-sm mb-1">
-                                <span>Progress</span>
-                                <span>{task.progress}%</span>
-                              </div>
-                              <Progress value={task.progress} className="h-2" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            {/* Gantt Chart */}
+            {viewMode === "gantt" && <GanttChart />}
           </>
         )}
       </div>
