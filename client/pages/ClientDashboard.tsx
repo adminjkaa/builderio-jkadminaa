@@ -220,7 +220,7 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <Link to="/timeline">
+                      <Link to={`/timeline/${project.id}`}>
                         <Button variant="outline" className="gap-2">
                           <BarChart3 className="w-4 h-4" />
                           View Timeline
