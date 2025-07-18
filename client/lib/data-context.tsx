@@ -141,9 +141,30 @@ const initialAdminUser: User = {
   password: "admin123",
 };
 
+// Initial test users
+const initialTestUsers: User[] = [
+  initialAdminUser,
+  {
+    id: "member1",
+    username: "member",
+    role: "member",
+    name: "Team Member",
+    password: "member123",
+    assignedProjects: [],
+  },
+  {
+    id: "client1",
+    username: "client",
+    role: "client",
+    name: "Client User",
+    password: "client123",
+    assignedProjects: [],
+  },
+];
+
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([initialAdminUser]);
+  const [users, setUsers] = useState<User[]>(initialTestUsers);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [media, setMedia] = useState<MediaFile[]>([]);
 
