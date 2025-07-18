@@ -114,6 +114,7 @@ export default function AdminDashboard() {
         status: "planned",
         progress: 0,
         description: newProjectData.description,
+        phases: [],
       });
       setShowNewProjectDialog(false);
       setNewProjectData({
