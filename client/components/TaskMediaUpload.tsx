@@ -34,7 +34,19 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
   const [description, setDescription] = useState("");
 
   const handleSubmit = () => {
-    if (uploadFiles && uploadFiles.length > 0 && user) {
+    if (!user) {
+      console.error("No user available for media upload");
+      alert("Error: User not authenticated. Please log in and try again.");
+      return;
+    }
+
+    if (!uploadFiles || uploadFiles.length === 0) {
+      console.error("No files selected for upload");
+      alert("Please select at least one file to upload.");
+      return;
+    }
+
+    try {
       Array.from(uploadFiles).forEach((file) => {
         // Create object URL for preview
         const url = URL.createObjectURL(file);
@@ -52,6 +64,12 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
       setUploadFiles(null);
       setDescription("");
       setShowDialog(false);
+
+      // Success feedback
+      alert(`Successfully uploaded ${uploadFiles.length} file(s)!`);
+    } catch (error) {
+      console.error("Error uploading media:", error);
+      alert("Error uploading files. Please try again.");
     }
   };
 
