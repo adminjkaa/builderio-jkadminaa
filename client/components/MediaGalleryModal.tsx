@@ -48,9 +48,8 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
   const [filterType, setFilterType] = useState<"all" | "image" | "video">(
     "all",
   );
-  const [fullscreenMedia, setFullscreenMedia] = useState<MediaFile | null>(
-    null,
-  );
+  const [fullscreenMedia, setFullscreenMedia] =
+    useState<MediaWithTaskInfo | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Get task info for each media file
