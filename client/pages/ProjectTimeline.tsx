@@ -54,6 +54,42 @@ export default function ProjectTimeline() {
     }
   };
 
+  const handleZoom = (direction: "in" | "out") => {
+    setZoomLevel((prev) => {
+      const step = 0.25;
+      const newZoom = direction === "in" ? prev + step : prev - step;
+      return Math.max(0.5, Math.min(3, newZoom)); // Limit between 0.5x and 3x
+    });
+  };
+
+  const exportTimeline = async () => {
+    try {
+      // Use html2canvas to capture the timeline
+      const { default: html2canvas } = await import("html2canvas");
+
+      if (timelineScrollRef.current) {
+        const canvas = await html2canvas(
+          timelineScrollRef.current.parentElement!,
+          {
+            backgroundColor: "#ffffff",
+            scale: 2, // Higher quality
+            useCORS: true,
+            allowTaint: true,
+          },
+        );
+
+        // Create download link
+        const link = document.createElement("a");
+        link.download = `${currentProject?.name || "project"}-timeline-${new Date().toISOString().split("T")[0]}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+    } catch (error) {
+      console.error("Error exporting timeline:", error);
+      alert("Error exporting timeline. Please try again.");
+    }
+  };
+
   // Get current project (first project if no projectId specified)
   const currentProject = projectId
     ? projects.find((p) => p.id === projectId)
