@@ -34,7 +34,13 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
   const [description, setDescription] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    console.log("Files selected:", files?.length || 0);
+    setUploadFiles(files);
+  };
+
+  const handleSubmit = async () => {
     if (!user) {
       console.error("No user available for media upload");
       alert("Error: User not authenticated. Please log in and try again.");
@@ -47,33 +53,45 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
       return;
     }
 
-    // Validate file types and sizes
-    const validFiles = Array.from(uploadFiles).filter((file) => {
-      const isValidType =
-        file.type.startsWith("image/") || file.type.startsWith("video/");
-      const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit
-
-      if (!isValidType) {
-        alert(`File "${file.name}" is not a valid image or video file.`);
-        return false;
-      }
-
-      if (!isValidSize) {
-        alert(`File "${file.name}" is too large. Maximum size is 50MB.`);
-        return false;
-      }
-
-      return true;
-    });
-
-    if (validFiles.length === 0) {
-      return;
-    }
+    setIsUploading(true);
 
     try {
-      validFiles.forEach((file) => {
+      // Validate file types and sizes
+      const validFiles = Array.from(uploadFiles).filter((file) => {
+        const isValidType =
+          file.type.startsWith("image/") || file.type.startsWith("video/");
+        const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit
+
+        if (!isValidType) {
+          alert(`File "${file.name}" is not a valid image or video file.`);
+          return false;
+        }
+
+        if (!isValidSize) {
+          alert(`File "${file.name}" is too large. Maximum size is 50MB.`);
+          return false;
+        }
+
+        return true;
+      });
+
+      if (validFiles.length === 0) {
+        setIsUploading(false);
+        return;
+      }
+
+      // Process each file
+      for (const file of validFiles) {
         // Create object URL for preview
         const url = URL.createObjectURL(file);
+
+        console.log("Adding media:", {
+          name: file.name,
+          type: file.type.startsWith("image/") ? "image" : "video",
+          taskId: taskId,
+          uploadedBy: user.username,
+        });
+
         addMedia({
           name: file.name,
           url: url,
@@ -82,18 +100,20 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
           uploadedBy: user.username,
           description: description,
         });
-      });
+      }
 
       // Reset form
       setUploadFiles(null);
       setDescription("");
       setShowDialog(false);
+      setIsUploading(false);
 
       // Success feedback
       alert(`Successfully uploaded ${validFiles.length} file(s)!`);
     } catch (error) {
       console.error("Error uploading media:", error);
       alert("Error uploading files. Please try again.");
+      setIsUploading(false);
     }
   };
 
