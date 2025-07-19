@@ -32,6 +32,7 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
   const [showDialog, setShowDialog] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
   const [description, setDescription] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleSubmit = () => {
     if (!user) {
