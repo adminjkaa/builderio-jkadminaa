@@ -56,7 +56,7 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
         ...media,
         taskName: task?.name || "Unknown Task",
         taskTrade: task?.trade || "",
-      };
+      } as MediaFile & { taskName: string; taskTrade: string };
     });
   }, [projectMedia, tasks]);
 
