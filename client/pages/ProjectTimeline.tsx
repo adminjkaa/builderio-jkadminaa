@@ -196,7 +196,7 @@ export default function ProjectTimeline() {
 
     return (
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        {/* Scroll Controls */}
+        {/* Timeline Controls */}
         <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
           <div className="flex items-center gap-2">
             <Button
@@ -215,10 +215,38 @@ export default function ProjectTimeline() {
               <ChevronRight className="w-4 h-4" />
               Scroll Right
             </Button>
+
+            <div className="border-l border-gray-300 h-6 mx-2" />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleZoom("out")}
+              disabled={zoomLevel <= 0.5}
+            >
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium px-2 py-1 bg-white border rounded">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleZoom("in")}
+              disabled={zoomLevel >= 3}
+            >
+              <ZoomIn className="w-4 h-4" />
+            </Button>
+
+            <div className="border-l border-gray-300 h-6 mx-2" />
+
+            <Button variant="outline" size="sm" onClick={exportTimeline}>
+              <Download className="w-4 h-4 mr-2" />
+              Export PNG
+            </Button>
           </div>
           <div className="text-sm text-gray-600">
-            {timelineData.totalDays} days • Use scroll controls or mouse wheel
-            to navigate
+            {timelineData.totalDays} days • Zoom: {Math.round(zoomLevel * 100)}%
           </div>
         </div>
 
