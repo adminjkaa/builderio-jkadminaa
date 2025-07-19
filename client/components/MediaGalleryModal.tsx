@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
