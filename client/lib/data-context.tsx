@@ -449,7 +449,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const addPhase = (projectId: string, phaseData: Omit<Phase, "id">) => {
     const newPhase: Phase = {
       ...phaseData,
-      id: Date.now().toString(),
+      id: generateId(),
     };
 
     setProjects((prev) =>
