@@ -149,11 +149,7 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
     setFullscreenMedia(filteredAndSortedMedia[newIndex]);
   };
 
-  const MediaCard = ({
-    media,
-  }: {
-    media: (typeof filteredAndSortedMedia)[0];
-  }) => (
+  const MediaCard = ({ media }: { media: MediaWithTaskInfo }) => (
     <div className="group relative bg-white rounded-lg border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       <div className="aspect-video bg-gray-100 relative overflow-hidden">
         {media.type === "image" ? (
