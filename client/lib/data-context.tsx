@@ -398,7 +398,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const addMedia = (mediaData: Omit<MediaFile, "id" | "uploadedAt">) => {
     const newMedia: MediaFile = {
       ...mediaData,
-      id: Date.now().toString(),
+      id: generateId(),
       uploadedAt: new Date().toISOString(),
     };
     setMedia((prev) => [...prev, newMedia]);
