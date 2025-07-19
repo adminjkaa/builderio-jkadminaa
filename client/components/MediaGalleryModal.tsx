@@ -326,6 +326,11 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
       {fullscreenMedia && (
         <Dialog open={!!fullscreenMedia} onOpenChange={closeFullscreen}>
           <DialogContent className="max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black">
+            <VisuallyHidden>
+              <DialogTitle>
+                Fullscreen view of {fullscreenMedia.name}
+              </DialogTitle>
+            </VisuallyHidden>
             <div className="relative w-full h-[95vh]">
               {/* Navigation */}
               <div className="absolute top-4 right-4 z-10 flex gap-2">
