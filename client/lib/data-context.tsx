@@ -336,7 +336,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   ) => {
     const newTask: Task = {
       ...taskData,
-      id: Date.now().toString(),
+      id: generateId(),
       media: [],
       progressComments: [],
       // If dueDate is provided but startDate/endDate are not, use dueDate as endDate
