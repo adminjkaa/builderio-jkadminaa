@@ -311,7 +311,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const addUser = (userData: Omit<User, "id">) => {
     const newUser: User = {
       ...userData,
-      id: Date.now().toString(),
+      id: generateId(),
     };
     setUsers((prev) => [...prev, newUser]);
   };
