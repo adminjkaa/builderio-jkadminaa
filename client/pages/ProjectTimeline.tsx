@@ -70,11 +70,6 @@ export default function ProjectTimeline() {
       if (timelineScrollRef.current) {
         const canvas = await html2canvas(
           timelineScrollRef.current.parentElement!,
-          {
-            backgroundColor: "#ffffff",
-            useCORS: true,
-            allowTaint: true,
-          },
         );
 
         // Create download link
