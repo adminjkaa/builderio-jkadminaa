@@ -33,6 +33,12 @@ export default function ClientDashboard() {
     navigate("/");
   };
 
+  const openGallery = (project: any) => {
+    setSelectedProjectMedia(project.media);
+    setSelectedProjectName(project.name);
+    setShowGallery(true);
+  };
+
   // Calculate comprehensive project statistics
   const projectStats = projects.map((project) => {
     const projectTasks = tasks.filter((task) => task.project === project.name);
