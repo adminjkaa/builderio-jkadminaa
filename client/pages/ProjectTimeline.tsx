@@ -64,20 +64,92 @@ export default function ProjectTimeline() {
 
   const exportTimeline = async () => {
     try {
-      // Use html2canvas to capture the timeline
-      const { default: html2canvas } = await import("html2canvas");
+      // Use xlsx to export timeline data to Excel
+      const XLSX = await import("xlsx");
 
-      if (timelineScrollRef.current) {
-        const canvas = await html2canvas(
-          timelineScrollRef.current.parentElement!,
+      if (!timelineData) return;
+
+      // Prepare data for Excel export
+      const worksheetData = [];
+
+      // Add header row
+      worksheetData.push([
+        "Phase",
+        "Task",
+        "Assigned To",
+        "Trade",
+        "Priority",
+        "Status",
+        "Progress (%)",
+        "Start Date",
+        "End Date",
+        "Duration (Days)",
+      ]);
+
+      // Add phase and task data
+      timelineData.tasksByPhase.forEach((phase) => {
+        phase.tasks.forEach((task) => {
+          const startDate = new Date(task.startDate);
+          const endDate = new Date(task.endDate);
+          const duration = Math.ceil(
+            (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+          );
+
+          worksheetData.push([
+            phase.name,
+            task.name,
+            task.assignedTo || "Unassigned",
+            task.trade,
+            task.priority,
+            task.status,
+            task.progress,
+            startDate.toLocaleDateString(),
+            endDate.toLocaleDateString(),
+            duration,
+          ]);
+        });
+      });
+
+      // Add unassigned tasks
+      timelineData.unassignedTasks.forEach((task) => {
+        const startDate = new Date(task.startDate);
+        const endDate = new Date(task.endDate);
+        const duration = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
         );
 
-        // Create download link
-        const link = document.createElement("a");
-        link.download = `${currentProject?.name || "project"}-timeline-${new Date().toISOString().split("T")[0]}.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      }
+        worksheetData.push([
+          "Unassigned",
+          task.name,
+          task.assignedTo || "Unassigned",
+          task.trade,
+          task.priority,
+          task.status,
+          task.progress,
+          startDate.toLocaleDateString(),
+          endDate.toLocaleDateString(),
+          duration,
+        ]);
+      });
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+      // Auto-size columns
+      const colWidths = worksheetData[0].map((_, i) => ({
+        wch:
+          Math.max(...worksheetData.map((row) => String(row[i] || "").length)) +
+          2,
+      }));
+      worksheet["!cols"] = colWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Timeline");
+
+      // Export file
+      const fileName = `${currentProject?.name || "project"}-timeline-${new Date().toISOString().split("T")[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
     } catch (error) {
       console.error("Error exporting timeline:", error);
       alert("Error exporting timeline. Please try again.");
