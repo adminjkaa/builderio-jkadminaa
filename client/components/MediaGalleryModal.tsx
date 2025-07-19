@@ -55,13 +55,13 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
 
   // Get task info for each media file
   const mediaWithTaskInfo = useMemo(() => {
-    return projectMedia.map((media) => {
+    return projectMedia.map((media): MediaWithTaskInfo => {
       const task = tasks.find((t) => t.id === media.taskId);
       return {
         ...media,
         taskName: task?.name || "Unknown Task",
         taskTrade: task?.trade || "",
-      } as MediaFile & { taskName: string; taskTrade: string };
+      };
     });
   }, [projectMedia, tasks]);
 
