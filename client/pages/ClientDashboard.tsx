@@ -513,6 +513,14 @@ export default function ClientDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Media Gallery Modal */}
+        <MediaGalleryModal
+          isOpen={showGallery}
+          onClose={() => setShowGallery(false)}
+          projectName={selectedProjectName}
+          projectMedia={selectedProjectMedia}
+        />
       </div>
     </div>
   );
