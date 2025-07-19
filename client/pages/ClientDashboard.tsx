@@ -24,6 +24,9 @@ export default function ClientDashboard() {
   const { user, logout } = useAuth();
   const { projects, tasks, media } = useData();
   const navigate = useNavigate();
+  const [showGallery, setShowGallery] = useState(false);
+  const [selectedProjectMedia, setSelectedProjectMedia] = useState<any[]>([]);
+  const [selectedProjectName, setSelectedProjectName] = useState("");
 
   const handleLogout = () => {
     logout();
