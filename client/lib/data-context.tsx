@@ -128,6 +128,13 @@ export const useData = () => {
   return context;
 };
 
+// Robust ID generation to prevent duplicates
+let idCounter = 0;
+const generateId = () => {
+  idCounter += 1;
+  return `${Date.now()}-${idCounter}`;
+};
+
 interface DataProviderProps {
   children: ReactNode;
 }
