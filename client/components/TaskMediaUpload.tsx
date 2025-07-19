@@ -144,7 +144,7 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
                   type="file"
                   multiple
                   accept="image/*,video/*"
-                  onChange={(e) => setUploadFiles(e.target.files)}
+                  onChange={handleFileChange}
                 />
                 {uploadFiles && uploadFiles.length > 0 && (
                   <p className="text-sm text-muted-foreground">
