@@ -126,7 +126,7 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
     document.body.removeChild(link);
   };
 
-  const openFullscreen = (media: MediaFile) => {
+  const openFullscreen = (media: MediaWithTaskInfo) => {
     setFullscreenMedia(media);
     setCurrentIndex(filteredAndSortedMedia.findIndex((m) => m.id === media.id));
   };
