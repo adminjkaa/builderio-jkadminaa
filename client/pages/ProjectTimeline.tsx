@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -7,15 +7,13 @@ import {
   Search,
   LogOut,
   BarChart3,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data-context";
 
@@ -24,6 +22,7 @@ export default function ProjectTimeline() {
   const { user, logout } = useAuth();
   const { projects, tasks } = useData();
   const navigate = useNavigate();
+  const timelineScrollRef = useRef<HTMLDivElement>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -35,6 +34,19 @@ export default function ProjectTimeline() {
 
   const handleBack = () => {
     navigate(`/dashboard/${user?.role}`);
+  };
+
+  const scrollTimeline = (direction: "left" | "right") => {
+    if (timelineScrollRef.current) {
+      const scrollAmount = 200;
+      const newScrollLeft =
+        timelineScrollRef.current.scrollLeft +
+        (direction === "right" ? scrollAmount : -scrollAmount);
+      timelineScrollRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: "smooth",
+      });
+    }
   };
 
   // Get current project (first project if no projectId specified)
@@ -130,21 +142,6 @@ export default function ProjectTimeline() {
     return { left, width };
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500";
-      case "in-progress":
-        return "bg-blue-500";
-      case "planned":
-        return "bg-gray-400";
-      case "delayed":
-        return "bg-red-500";
-      default:
-        return "bg-gray-400";
-    }
-  };
-
   const getPhaseColor = (phase: any) => {
     return phase?.color || "#8B5CF6";
   };
@@ -153,15 +150,42 @@ export default function ProjectTimeline() {
     if (!timelineData) return null;
 
     const { timelineDays, tasksByPhase, unassignedTasks } = timelineData;
-    const dayWidth = 100 / timelineData.totalDays;
+    const dayWidth = Math.max(40, 800 / timelineData.totalDays); // Minimum 40px per day
 
     return (
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
-        {/* Gantt Chart Header */}
-        <div className="bg-gray-50 border-b">
-          <div className="flex">
-            {/* Left column header */}
-            <div className="w-80 border-r bg-gray-100 p-4">
+        {/* Scroll Controls */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scrollTimeline("left")}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Scroll Left
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scrollTimeline("right")}
+            >
+              <ChevronRight className="w-4 h-4" />
+              Scroll Right
+            </Button>
+          </div>
+          <div className="text-sm text-gray-600">
+            {timelineData.totalDays} days • Use scroll controls or mouse wheel
+            to navigate
+          </div>
+        </div>
+
+        {/* Gantt Chart Container */}
+        <div className="flex">
+          {/* Fixed Left Column */}
+          <div className="w-80 bg-gray-50 border-r flex-shrink-0">
+            {/* Header */}
+            <div className="p-4 border-b bg-gray-100">
               <div className="grid grid-cols-4 gap-4 text-xs font-semibold text-gray-600 uppercase">
                 <div>TASK</div>
                 <div>ASSIGNED TO</div>
@@ -170,265 +194,283 @@ export default function ProjectTimeline() {
               </div>
             </div>
 
-            {/* Timeline header */}
-            <div className="flex-1 relative">
-              {/* Week headers */}
-              <div className="flex border-b bg-gray-200">
-                {Array.from(
-                  { length: Math.ceil(timelineData.totalDays / 7) },
-                  (_, weekIndex) => (
-                    <div
-                      key={weekIndex}
-                      className="border-r border-gray-300 text-center py-2 text-xs font-semibold"
-                      style={{ width: `${dayWidth * 7}%` }}
-                    >
-                      Week {weekIndex + 1}
-                    </div>
-                  ),
-                )}
-              </div>
-
-              {/* Day headers */}
-              <div className="flex">
-                {timelineDays.map((day, index) => (
-                  <div
-                    key={index}
-                    className={`border-r border-gray-200 text-center py-2 text-xs ${
-                      day.isWeekStart ? "bg-gray-100 font-semibold" : "bg-white"
-                    }`}
-                    style={{ width: `${dayWidth}%` }}
-                  >
-                    <div>{day.date.getDate()}</div>
-                    <div className="text-gray-500">
-                      {day.date.toLocaleDateString("en-US", {
-                        weekday: "short",
-                      })}
+            {/* Tasks Column */}
+            <div className="max-h-96 overflow-y-auto">
+              {/* Phase sections */}
+              {tasksByPhase.map((phase) => (
+                <div key={phase.id}>
+                  {/* Phase header */}
+                  <div className="bg-gray-100 px-4 py-2 border-b">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: phase.color }}
+                      />
+                      <span className="font-semibold text-gray-700 text-sm">
+                        {phase.name}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {phase.tasks.length} tasks
+                      </Badge>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Phase tasks */}
+                  {phase.tasks.map((task) => (
+                    <div key={task.id} className="border-b border-gray-100 p-3">
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium text-gray-900 text-xs">
+                            {task.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {task.trade}
+                          </div>
+                        </div>
+                        <div className="text-gray-600 text-xs">
+                          {task.assignedTo || "Unassigned"}
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium">
+                            {task.progress}%
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full"
+                              style={{ width: `${task.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          <div>
+                            {new Date(task.startDate).toLocaleDateString()}
+                          </div>
+                          <div>
+                            {new Date(task.endDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+
+              {/* Unassigned tasks */}
+              {unassignedTasks.length > 0 && (
+                <div>
+                  <div className="bg-gray-100 px-4 py-2 border-b">
+                    <span className="font-semibold text-gray-700 text-sm">
+                      Unassigned Tasks
+                    </span>
+                  </div>
+                  {unassignedTasks.map((task) => (
+                    <div key={task.id} className="border-b border-gray-100 p-3">
+                      <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="font-medium text-gray-900 text-xs">
+                            {task.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {task.trade}
+                          </div>
+                        </div>
+                        <div className="text-gray-600 text-xs">
+                          {task.assignedTo || "Unassigned"}
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium">
+                            {task.progress}%
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full"
+                              style={{ width: `${task.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          <div>
+                            {new Date(task.startDate).toLocaleDateString()}
+                          </div>
+                          <div>
+                            {new Date(task.endDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Gantt Chart Body */}
-        <div className="max-h-96 overflow-y-auto">
-          {/* Phase sections */}
-          {tasksByPhase.map((phase) => (
-            <div key={phase.id} className="border-b">
-              {/* Phase header */}
-              <div className="bg-gray-50 px-4 py-2 border-b">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: phase.color }}
-                  />
-                  <span className="font-semibold text-gray-700">
-                    {phase.name}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {phase.tasks.length} tasks
-                  </Badge>
+          {/* Scrollable Timeline Area */}
+          <div
+            ref={timelineScrollRef}
+            className="flex-1 overflow-x-auto overflow-y-hidden"
+            style={{ maxWidth: "calc(100vw - 400px)" }}
+          >
+            <div style={{ width: `${timelineData.totalDays * dayWidth}px` }}>
+              {/* Timeline Header */}
+              <div className="border-b bg-gray-50">
+                {/* Week headers */}
+                <div className="flex border-b bg-gray-200">
+                  {Array.from(
+                    { length: Math.ceil(timelineData.totalDays / 7) },
+                    (_, weekIndex) => (
+                      <div
+                        key={weekIndex}
+                        className="border-r border-gray-300 text-center py-2 text-xs font-semibold"
+                        style={{ width: `${dayWidth * 7}px` }}
+                      >
+                        Week {weekIndex + 1}
+                      </div>
+                    ),
+                  )}
+                </div>
+
+                {/* Day headers */}
+                <div className="flex">
+                  {timelineDays.map((day, index) => (
+                    <div
+                      key={index}
+                      className={`border-r border-gray-200 text-center py-2 text-xs ${
+                        day.isWeekStart
+                          ? "bg-gray-100 font-semibold"
+                          : "bg-white"
+                      }`}
+                      style={{ width: `${dayWidth}px` }}
+                    >
+                      <div>{day.date.getDate()}</div>
+                      <div className="text-gray-500">
+                        {day.date.toLocaleDateString("en-US", {
+                          weekday: "short",
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Phase tasks */}
-              {phase.tasks.map((task, taskIndex) => {
-                const { left, width } = getTaskPosition(
-                  task.startDate,
-                  task.endDate,
-                );
-                const phaseColorHex = getPhaseColor(phase);
+              {/* Timeline Body */}
+              <div className="max-h-96 overflow-y-auto">
+                {/* Phase sections */}
+                {tasksByPhase.map((phase) => (
+                  <div key={phase.id}>
+                    {/* Phase header row */}
+                    <div className="bg-gray-100 h-10 border-b"></div>
 
-                return (
-                  <div
-                    key={task.id}
-                    className="flex border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    {/* Task info column */}
-                    <div className="w-80 border-r p-3">
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {task.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {task.trade}
-                          </div>
-                        </div>
-                        <div className="text-gray-600">
-                          {task.assignedTo || "Unassigned"}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium">
-                            {task.progress}%
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                            <div
-                              className="bg-blue-500 h-1.5 rounded-full"
-                              style={{ width: `${task.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          <div>
-                            {new Date(task.startDate).toLocaleDateString()}
-                          </div>
-                          <div>
-                            {new Date(task.endDate).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Phase task rows */}
+                    {phase.tasks.map((task) => {
+                      const { left, width } = getTaskPosition(
+                        task.startDate,
+                        task.endDate,
+                      );
+                      const phaseColorHex = getPhaseColor(phase);
 
-                    {/* Timeline bars */}
-                    <div className="flex-1 relative py-4">
-                      <div className="relative h-6">
-                        {/* Background bar */}
+                      return (
                         <div
-                          className="absolute top-1 h-4 rounded opacity-30"
-                          style={{
-                            left: `${left}%`,
-                            width: `${width}%`,
-                            backgroundColor: phaseColorHex,
-                          }}
-                        />
-
-                        {/* Progress bar */}
-                        <div
-                          className="absolute top-1 h-4 rounded"
-                          style={{
-                            left: `${left}%`,
-                            width: `${(width * task.progress) / 100}%`,
-                            backgroundColor: phaseColorHex,
-                          }}
-                        />
-
-                        {/* Progress text overlay */}
-                        <div
-                          className="absolute top-1 h-4 flex items-center justify-center text-xs font-medium text-white"
-                          style={{
-                            left: `${left}%`,
-                            width: `${width}%`,
-                          }}
+                          key={task.id}
+                          className="relative h-16 border-b border-gray-100"
                         >
-                          {task.progress}%
+                          {/* Task timeline bar */}
+                          <div className="absolute inset-0 flex items-center px-2">
+                            <div
+                              className="relative h-6"
+                              style={{
+                                marginLeft: `${(left / 100) * timelineData.totalDays * dayWidth}px`,
+                                width: `${(width / 100) * timelineData.totalDays * dayWidth}px`,
+                              }}
+                            >
+                              {/* Background bar */}
+                              <div
+                                className="absolute inset-0 rounded opacity-30"
+                                style={{ backgroundColor: phaseColorHex }}
+                              />
+
+                              {/* Progress bar */}
+                              <div
+                                className="absolute inset-0 rounded"
+                                style={{
+                                  backgroundColor: phaseColorHex,
+                                  width: `${task.progress}%`,
+                                }}
+                              />
+
+                              {/* Progress text */}
+                              <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
+                                {task.progress}%
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Day grid lines */}
+                          <div className="absolute inset-0 flex">
+                            {timelineDays.map((day, dayIndex) => (
+                              <div
+                                key={dayIndex}
+                                className="border-r border-gray-100 opacity-50"
+                                style={{ width: `${dayWidth}px` }}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Day grid lines */}
-                      <div className="absolute inset-0 flex">
-                        {timelineDays.map((day, dayIndex) => (
-                          <div
-                            key={dayIndex}
-                            className="border-r border-gray-100"
-                            style={{ width: `${dayWidth}%` }}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                ))}
 
-          {/* Unassigned tasks */}
-          {unassignedTasks.length > 0 && (
-            <div className="border-b">
-              <div className="bg-gray-50 px-4 py-2 border-b">
-                <span className="font-semibold text-gray-700">
-                  Unassigned Tasks
-                </span>
+                {/* Unassigned tasks */}
+                {unassignedTasks.length > 0 && (
+                  <div>
+                    <div className="bg-gray-100 h-10 border-b"></div>
+                    {unassignedTasks.map((task) => {
+                      const { left, width } = getTaskPosition(
+                        task.startDate,
+                        task.endDate,
+                      );
+
+                      return (
+                        <div
+                          key={task.id}
+                          className="relative h-16 border-b border-gray-100"
+                        >
+                          <div className="absolute inset-0 flex items-center px-2">
+                            <div
+                              className="relative h-6"
+                              style={{
+                                marginLeft: `${(left / 100) * timelineData.totalDays * dayWidth}px`,
+                                width: `${(width / 100) * timelineData.totalDays * dayWidth}px`,
+                              }}
+                            >
+                              <div className="absolute inset-0 bg-gray-400 rounded opacity-30" />
+                              <div
+                                className="absolute inset-0 bg-gray-600 rounded"
+                                style={{ width: `${task.progress}%` }}
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
+                                {task.progress}%
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="absolute inset-0 flex">
+                            {timelineDays.map((day, dayIndex) => (
+                              <div
+                                key={dayIndex}
+                                className="border-r border-gray-100 opacity-50"
+                                style={{ width: `${dayWidth}px` }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              {unassignedTasks.map((task) => {
-                const { left, width } = getTaskPosition(
-                  task.startDate,
-                  task.endDate,
-                );
-
-                return (
-                  <div
-                    key={task.id}
-                    className="flex border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    <div className="w-80 border-r p-3">
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {task.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {task.trade}
-                          </div>
-                        </div>
-                        <div className="text-gray-600">
-                          {task.assignedTo || "Unassigned"}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium">
-                            {task.progress}%
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                            <div
-                              className="bg-blue-500 h-1.5 rounded-full"
-                              style={{ width: `${task.progress}%` }}
-                            />
-                          </div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          <div>
-                            {new Date(task.startDate).toLocaleDateString()}
-                          </div>
-                          <div>
-                            {new Date(task.endDate).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 relative py-4">
-                      <div className="relative h-6">
-                        <div
-                          className="absolute top-1 h-4 bg-gray-400 rounded opacity-30"
-                          style={{
-                            left: `${left}%`,
-                            width: `${width}%`,
-                          }}
-                        />
-                        <div
-                          className="absolute top-1 h-4 bg-gray-600 rounded"
-                          style={{
-                            left: `${left}%`,
-                            width: `${(width * task.progress) / 100}%`,
-                          }}
-                        />
-                        <div
-                          className="absolute top-1 h-4 flex items-center justify-center text-xs font-medium text-white"
-                          style={{
-                            left: `${left}%`,
-                            width: `${width}%`,
-                          }}
-                        >
-                          {task.progress}%
-                        </div>
-                      </div>
-
-                      <div className="absolute inset-0 flex">
-                        {timelineDays.map((day, dayIndex) => (
-                          <div
-                            key={dayIndex}
-                            className="border-r border-gray-100"
-                            style={{ width: `${dayWidth}%` }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
