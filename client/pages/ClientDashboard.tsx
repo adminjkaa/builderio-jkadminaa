@@ -236,7 +236,11 @@ export default function ClientDashboard() {
                           View Timeline
                         </Button>
                       </Link>
-                      <Button variant="outline" className="gap-2">
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => openGallery(project)}
+                      >
                         <FileImage className="w-4 h-4" />
                         Gallery ({project.media.length})
                       </Button>
