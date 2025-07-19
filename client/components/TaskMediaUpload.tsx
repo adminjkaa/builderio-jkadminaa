@@ -168,10 +168,12 @@ export const TaskMediaUpload: React.FC<TaskMediaUploadProps> = ({
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={!uploadFiles || uploadFiles.length === 0}
+                disabled={
+                  !uploadFiles || uploadFiles.length === 0 || isUploading
+                }
               >
                 <Upload className="w-4 h-4 mr-2" />
-                Upload
+                {isUploading ? "Uploading..." : "Upload"}
               </Button>
             </div>
           </DialogContent>
