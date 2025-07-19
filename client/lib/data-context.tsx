@@ -367,7 +367,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       prev.map((task) => {
         if (task.id === taskId) {
           const progressComment: ProgressComment = {
-            id: Date.now().toString(),
+            id: generateId(),
             taskId,
             userId,
             userName,
