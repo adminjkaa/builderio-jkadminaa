@@ -24,6 +24,11 @@ import {
 } from "lucide-react";
 import { useData, type MediaFile, type Task } from "@/lib/data-context";
 
+interface MediaWithTaskInfo extends MediaFile {
+  taskName: string;
+  taskTrade: string;
+}
+
 interface MediaGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
