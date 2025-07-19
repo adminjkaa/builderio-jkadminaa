@@ -286,7 +286,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   ) => {
     const newProject: Project = {
       ...projectData,
-      id: Date.now().toString(),
+      id: generateId(),
       activeTasks: 0,
       totalTasks: 0,
       members: 0,
