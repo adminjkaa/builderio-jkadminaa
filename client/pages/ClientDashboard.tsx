@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/data-context";
+import MediaGalleryModal from "@/components/MediaGalleryModal";
 
 export default function ClientDashboard() {
   const { user, logout } = useAuth();
