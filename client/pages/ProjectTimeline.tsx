@@ -191,7 +191,8 @@ export default function ProjectTimeline() {
     if (!timelineData) return null;
 
     const { timelineDays, tasksByPhase, unassignedTasks } = timelineData;
-    const dayWidth = Math.max(40, 800 / timelineData.totalDays); // Minimum 40px per day
+    const baseDayWidth = Math.max(40, 800 / timelineData.totalDays); // Minimum 40px per day
+    const dayWidth = baseDayWidth * zoomLevel;
 
     return (
       <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
