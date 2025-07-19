@@ -115,7 +115,7 @@ export const MediaGalleryModal: React.FC<MediaGalleryModalProps> = ({
     return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredAndSortedMedia]);
 
-  const downloadMedia = (media: MediaFile) => {
+  const downloadMedia = (media: MediaWithTaskInfo) => {
     // Create a temporary link and trigger download
     const link = document.createElement("a");
     link.href = media.url;
