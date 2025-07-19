@@ -377,9 +377,18 @@ export default function ClientDashboard() {
               {project.media && project.media.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileImage className="w-5 h-5" />
-                      Project Media ({project.media.length})
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileImage className="w-5 h-5" />
+                        Project Media ({project.media.length})
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openGallery(project)}
+                      >
+                        View All
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -387,26 +396,40 @@ export default function ClientDashboard() {
                       {project.media.slice(0, 12).map((mediaFile) => (
                         <div
                           key={mediaFile.id}
-                          className="aspect-square bg-muted rounded-lg overflow-hidden"
+                          className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => openGallery(project)}
                         >
                           {mediaFile.type === "image" ? (
                             <img
                               src={mediaFile.url}
                               alt={mediaFile.name}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-full h-full flex items-center justify-center bg-gray-200">
                               <FileImage className="w-6 h-6 text-muted-foreground" />
                             </div>
                           )}
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="text-white text-xs font-medium">
+                              View
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
                     {project.media.length > 12 && (
-                      <p className="text-sm text-muted-foreground mt-3 text-center">
-                        +{project.media.length - 12} more files
-                      </p>
+                      <div className="mt-3 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openGallery(project)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          +{project.media.length - 12} more files - Click to
+                          view all
+                        </Button>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
