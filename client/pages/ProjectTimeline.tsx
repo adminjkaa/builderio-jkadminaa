@@ -71,7 +71,7 @@ export default function ProjectTimeline() {
         const canvas = await html2canvas(
           timelineScrollRef.current.parentElement!,
           {
-            backgroundColor: "#ffffff",
+            background: "#ffffff",
             scale: 2, // Higher quality
             useCORS: true,
             allowTaint: true,
