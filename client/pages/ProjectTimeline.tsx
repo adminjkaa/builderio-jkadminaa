@@ -30,6 +30,7 @@ export default function ProjectTimeline() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [zoomLevel, setZoomLevel] = useState(1); // 0.5x to 3x zoom
 
   const handleLogout = () => {
     logout();
